@@ -1,0 +1,54 @@
+Assignment 3 README
+
+Howard Kim and Cole Zuber
+
+We received help from instructor Noah Daniels, as well as TAs Greg Bodwin,
+Eliot Alter, and Ben Weitzman.
+
+Parts A, B, and C were all implemented correctly in all parts, including the
+extra credit portions for part C.
+
+For part A, we represented the blocked 2d array of height h and width w as a
+single uarray of length w x h. The invariant was that the (i,j)th element of
+the 2d array was stored in the ((i/b)*b*b + (j/b)*b*((b+w-1)/b)*b + b*(j%b) +
+i%b))'th element of the array.
+
+For part B, we used a struct of function pointers that pointed to the functions
+for UArray2 (UArray2b was already implemented for us).
+
+For part C, we read in using pnm.h and we used map to rotate and flip pixels.
+We used a different method for each rotation and flip, and we transformed each
+pixel location algebraically to a target 2d array.
+
+For all part E test times, we ran ppmtrans on the local machines and used
+traintracks.jpg for our rotations. All times are user only.
+
+Block-major 90: 7.28s
+Block-major 180: 7.04s
+Col-major 90: 9.61s
+Col-major 180: 8.16s
+Row-major 90: 8.92s
+Row-major 180: 10.71s
+
+Block-major 90 and 180 rotate the fastest for two reasons. First is that they
+have the minimum number of misses, for a hit rate of approximately 1. Second is
+that they store the pixels into a single uarray of length h x w instead of a
+uarray of uarrays, like they are stored the other two rotations.
+
+Col-major 180 is next fastest because the hit rate is near 1 but does not have
+the advantage of storing pixels into a single uarray. Accessing the internal
+uarray after accessing the external uarray takes up more computing time than
+accessing just one uarray.
+
+Col-major 90 and row-major 90 would be the same speed if the image had the same
+number of columns and rows, but because the image has significantly more
+columns than rows, col-major is significantly slower than row-major. Both
+rotations should have a hit rate of ~.5, but row-major will have a slightly
+higher hit rate. Note that col-major might be slower in most pictures because
+they tend to be in a landscape format, thus rows will be longer than columns.
+
+Row major 180 is the slowest because the hit rate is ~0. This is again 
+because we structured our 2d array as an array of arrays and mapping through 
+each row index forced us to get a new UArray everytime.
+
+We spent approximately 22 hours on this assignment.

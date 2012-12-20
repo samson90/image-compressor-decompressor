@@ -1,0 +1,14 @@
+Assignment 3 README
+
+Cole Zuber (No partner)
+Help from: Alex Polyakov, Howard Kim, and TA Greg Bodwin.
+All parts of Assignment have been implemented correctly to the best of my
+knowledge.
+
+40Image calls on compress40 or decompress40 functions in the compress40 module.
+The functions use the bitpack module to store and get bits, the component
+module to convert between RGB and component, and the arith40 to handle chroma
+values.
+
+Hours spent analyzing: 5
+Hours spent solving: 12

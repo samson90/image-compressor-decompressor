@@ -1,0 +1,264 @@
+Modules
+  -compress40
+  -arith40
+
+Program
+  -40image
+
+Part A: Design for lossy image compression.
+1. What problem are you trying to solve?
+  Image compression from a ppm to a binary image file and decompression from a 
+  binary image file to a ppm.
+
+2. What example inputs will help illuminate the problem?
+  For compression, a large ppm file. For decompression, a binary image file.
+  Along with the file, their should be a string "-c" to signify compression or 
+  "-d" to signify decompression. If no files are given, the program reads from
+  standard input.
+
+3. What example outputs go with those example inputs?
+  Compressing should print a binary image to standard output. Decompressing
+  should print a pixmap to standard output. An error is raised if an exception
+  is met or an assertion is failed.
+
+4. Into what steps or subproblems can you break down the problem?
+  Though not incredibly detailed, this is the general steps for the program:
+  Compression:
+  - Read the ppm image from a file or standard input using pnm read.
+  - Perform the necassary compression algorithm described in steps 2-4 in the
+    assignment (the Arith40 and Bitpack implementations will be used. See 
+    below for their details).
+  - Write a compressed binary image to standard output.
+  Decompression:
+  - Read in the compressed file, first by reading in the header.
+  - Then read in the image into a 2d array.
+  - Perform the algorithm described in steps 8-12 in the assignment.
+  - Write the uncompressed image to standart output.
+
+5. What data are in each subproblem?
+  - For reading in the input, we are given the string denoting the file type 
+    (for exampe "P3" for pixmap), the width and height of the image, the 
+    denominator if we're reading in a pixmap, and the pixels.
+  - For the compression and decompression algorithm, all we need are the pixels
+    and the operations to perform the transformation (with the exception of the
+    image trimming at the beginning which will need the width and height of the
+    image).
+  - For the output, we need the transformed pixels in a 2d array and the new
+    demensions. For decompression we will also need a denominator which we can
+    choose.
+
+6. What code or algorithms go with that data?
+  - Reading in the input will be similiar to most of the programs written in
+    previous assignments. I'll be using ppm_read to store the pixels in the 
+    pixmap and a seperate function to store the pixels in the binary imaage
+    file to an array.
+  - Both the compression and decompression algorithms are described in the
+    assignment handout.
+  - Writing the output will be similar to previous assignments. Ppm_write
+    will be used to write the decompressed pixmap.
+
+For 7 and 8 ask TAs or Noah about abstractions.
+
+7. What abstractions wil you use to help solve the problem?
+  - Pnm will be used to read, write and store the images.
+  - A2_methods along with both implementations of the 2darray are needed to
+    store and perform operations on the pixels.
+
+8. No new abstractions are needed for this program. 
+
+9. What invariant properties should hold during the solution of the problem?
+  - The invariants for the 2darrays should hold.
+  - For the compressed image, these compenants and their structure in memory 
+    must hold.
+  - Value          Type                    Width  LSB
+    a              Unsigned scaled integer 9 bits 23
+    b              Signed scaled integer   5 bits 18
+    c              Signed scaled integer   5 bits 13
+    d              Signed scaled integer   5 bits 8
+    index(\avgP_B) Unsigned index          4 bits 4
+    index(\avgP_R) Unsinged index          4 bits 0
+  - As a result of the above table, this invariant must also hold: For all 
+    value a, width + lsb <= 32.
+  - For the decompressed image, the denominator cannot be more than 65535.
+  - The RGB values are between 0 to 225.
+
+10. The algorithms in the assignment handout give the instructions on how to
+    compress and decompress files. Along with this, we will need the algorithm
+    for comparing images in Ppm_diff for testing (on the lab handout).
+
+11. Here are the major components and their functions.
+  - Pnm.h - functions and contracts included in /comp/40/include.
+
+  - A2_methods and 2darrays - both have been used in the previous assignment.
+    We'll be using the blocked representation of a 2d array.
+
+  - arith40.h
+    - extern unsigned Arith40_index_of_chroma(float chroma) converts a chroma
+      value into a 4-bit quantized representaion of the value.
+    - extern float Aright40_chroma_of_index(unsigned n) converts a four-bit
+      number n into a chroma value.
+    - extern void Arith40_test_chroma_map(float chroma) no description 
+      anywhere in the assignment or in arith40.h for what this function does.
+
+  - bitpack.h - detailed description of bitpack below.
+
+  - compress40.h 
+    - extern void compress40(FILE *input) reads a PPM input and writes a
+      compressed binary image to stdout.
+    - extern void decompress40(FILE *input) reads a compressed binary image and
+      writes a PPM file to stdout.
+    Functions that are not in the header file but will be declared and
+    implemented in compress40.c:
+    For Compression:
+    - A2 trimImage(A2 image) returns the image with the last column 
+      and/or row chopped off if the number of columns and/or rows are odd.
+    - void convertComponent(i, j, A2 a, void *elem, void *cl) an apply function
+      that converts each pixel to component video color space.
+    - void avgDC(i, j, A2 a, void *elem, void *cl) an apply function that
+      takes the average P_B and P_R of a 2x2 block an stores it in a 2d array.
+    - void index_of_chroma(i, j, A2 a, void *elem, void *cl) an apply function
+      that converts avgP_B and avgP_R to four-bit values. Calls 
+      Arith40_index_of_chroma.
+    - void dct(i, j, A2 a, void *elem, void *cl) apply function that converts
+      four luma values to cosine coeffecients.
+    - The rest of the packing algorithm can be done by pit back. Reading the 
+      file is done by Pnm.
+    - writeImage(i, j, A2 a, void *elem, void* cl) an apply function that
+      prints each pixel ot stdout.
+    For Decompression:
+    - Pnm_ppm read(FILE *fp, A2Methods_T methods) reads in the file and returns
+      a pixmap. This is not the same as Ppm_read which expects the file to be
+      a ppm.
+    - The algorthm is for decompression is going to be structured in a very 
+      similar way as the algorithm for compression (a lot of apply functions.)
+      Many of the functions are inverses of the compression functions.
+    - We use Pnm_ppmwrite to write the image to stdout.
+
+  - main.c - main will only call the compress40 and decompress40 functions in 
+    compress40.h
+
+12. How do the components in your program interact? That is, what is the 
+    architecture of your program?
+  - The main function takes in one or two arguments from the command line. The 
+    first argument is a string (either -c or -d) that tells the program whether
+    to decompress or compress a given image. If a file name is given as the
+    second argument, it is passed to the compress40 or decompress40 function,
+    else it passes stdin.
+ 
+  - The compress40 and decompress40 functions in the compress40.c are in
+    charge of reading, compressing/decompress the file, and write the file to
+    stdout. Compress40 uses the pnm module to read in the file to a Pnm_ppm.
+    It then calls helper functions in compress40.c, a function in the arith40
+    module, and functions in the bitpack module to compress the image.
+    Writing the file is done by the writeImage function in compress40 module.
+    Decompress40 uses the arith40 module and helper functions in compress40.c
+    to decompress the image. The function then calls the the write function in
+    the pnm implementation to write the decompressed file to stdout.
+
+  - After the image has been compressed/decompressed, control is returned to
+    main and main returns 0.
+
+13. What test cases will you use to convince yourself that your program works?
+  - Throughout coding the compression program, I will stop at each step of the
+    alogrithm and test the program with different size image files to ensure
+    each step is working. I'll repeat this process for the decompressiong 
+    portion of the assignment
+
+  - Once the program is done, I'll use ppm_diff to compare mulitple image files
+    and their compressed counterparts to ensure similarity. I'll also make sure
+    that the compressed image is around a third of the size of the original.
+
+  - Other test cases:
+    - Images with even and odd width and heights.
+    - Images with missing pixels.
+    - Files tpyes that are not binary image files or ppms.
+
+14. What arguments will you use to convice a skeptical audience that your 
+    program works?
+
+  - In order for the program to succeed, each pixel in the image must be 
+    compressed/decompressed. The invariant for the map functions in either 2d 
+    array implementation ensures that this is the case. For the map-row-major
+    function, we know that every pixel above the current pixel and every pixel
+    to the left of and in the same row of the current has been passed to the
+    apply function. This invariant holds for every pixel in the image. Since
+    we are using an apply to carry out each step of the algorithm, we know
+    that every step of the algorithm will be carried out on every pixel, thus
+    the image compression/decompression will succeed.
+
+  - We also need to ensure that every four pixels will be packed into a 32 bit
+    word. However, this is taken care for us in the bitpack module. As long as
+    every invariant in the bitpack module holds. We know that 32-bit pack will
+    succeed.
+
+Part B: Design for bitpack
+
+Bitpack is a set of functions used for bit manipulation. It also includes
+an exception "Bitpack_Overflow" that is raised by many of the functions.
+
+1. What data are in the problem?
+  - Signed and unsigned integers.
+  - A width which is a restraint for the number of bits we can use to for our
+    representation of the integer.
+  - The memory address of varoables.
+  - The location of the least significant bit of the field pointed to by the
+    memory address (represented as an unsigned integer).
+  - A bit representation of the field pointed to by the memory address.
+
+2. What code or algorithms go with that data?
+  Not many algorithms for this code. I will be using a lot of comparisons for
+  error checking. I'll use the logarithmic and absolute value function for the
+  width test functions. For the gets and new function, I'll use pointer 
+  arithmetic to increment through the field starting at the lsb.
+
+3. What abstractions will you use to solve the problem?
+  - No abstractions are being used.
+
+4. What is the abstract thing you are trying to represent?
+  No abstract thing is being represent, we are just implementing a list of 
+  functions that can be used for bit manipulation.
+
+5. What functions will you offer and what are the contracts that thos functions
+   must meet?
+  - bool Bitpack_fitsu(uint64_t n, unsigned width) tells if the unsigned 
+    integer n can be represented by a width number of bits. 
+  - bool Bitpack_fitss(int64_t n, unsigned width) tells if signed integer n can
+    be represented by a width number of bits.
+  - uint64_t Bitpack_getu(uint64_t word, unsigned width, unsigned lsb) returns
+    an unsigned value pointed to by word.
+  - int64_t Bitpack_gets(uint64_t word, unsigned width, unsigned lsb) returns
+    a signed value word.
+  - uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb, 
+                          uint64_t value) Returns representation of word 
+    identical to the original one except field of width width with least
+    significant bit at lsb is replaced by a unsigned width-bit representation
+    of value.
+  - uint64_t Bitpack_news(uint64_t word, unsigned width, unsigned lsb,  
+                          int64_t value) returns representation of word 
+    identical to the original one except field of width width with least 
+    significant bit at lsb is replaced by a unsigned width-bit representation 
+    of value.
+
+6. What examples do you have of what the functions are supposed to do?
+  - Bitpack_fitsu(21, 5) == true;
+  - Bitpack_fitss(26, 5) == false;
+  - Bitpack_fitss(-12, 5) == true;
+  - Bitpack_getsu(0x3f4, 4, 3) = 5;
+  - Bitpack-getss(0x3f4, 4, 3) = 5;
+  - Bitpack-getss(0x3f4, 43, 25) = check run-time error
+  - uint64_t word = Bitpack-newu(0x3f4, 12, 10, 12);
+  - word = Bitpack-news(0x3f4, 3 10, 3);
+
+7. What representation will you use, and what incariants will it satisfy?
+  -We are not representing anything here.
+
+8. What test cases have you devised?
+  - Pass a width that is greater than 64.
+  - Pass a width and an lsb that is greater than 64.
+  - Pass a value to Bitpack-new that is too large to store in the width-bit 
+    representation.
+  - Pass null to Bitpack-gets.
+
+9. What programmin idioms will you need?
+  - Pointer arithmetic
+  - Possibly printing integers of known width for testing purposes.
